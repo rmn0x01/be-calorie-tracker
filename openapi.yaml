@@ -1,0 +1,329 @@
+openapi: 3.0.3
+info:
+  title: Calorie Tracker API
+  description: Backend API for the calorie tracker application (single-user MVP).
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3010
+    description: Local development
+
+tags:
+  - name: Public
+    description: Unauthenticated endpoints
+  - name: User
+    description: Logged-in user management
+  - name: Calorie Entry
+    description: Calorie logging and totals
+
+paths:
+  /:
+    get:
+      tags: [Public]
+      summary: Home
+      operationId: getHome
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: string
+                    example: home
+
+  /login:
+    post:
+      tags: [Public]
+      summary: Login
+      description: Authenticate with email and password; returns a token for use in Authorization header.
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Missing or invalid body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: INVALID_REQUEST_BODY
+                message: email and password are required
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: INVALID_CREDENTIALS
+                message: email or password is incorrect
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user-management/my:
+    get:
+      tags: [User]
+      summary: Get current user
+      description: Returns the logged-in user (password excluded). Requires Bearer token.
+      operationId: getMyUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized – missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: NOT_FOUND
+                message: User not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /calorie-entry:
+    post:
+      tags: [Calorie Entry]
+      summary: Create calorie entry
+      description: Log a food entry with calories. Requires Bearer token.
+      operationId: createCalorieEntry
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalorieEntryCreate'
+      responses:
+        '201':
+          description: Entry created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CalorieEntry'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /calorie-entry/calories-today:
+    get:
+      tags: [Calorie Entry]
+      summary: Get total calories today
+      description: Returns the sum of calories logged today for the current user. Requires Bearer token.
+      operationId: getCaloriesToday
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [totalCalories]
+                    properties:
+                      totalCalories:
+                        type: number
+                        format: float
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Use the token returned from POST /login as "Bearer &lt;token&gt;" (UUID, not JWT).
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable message
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+
+    LoginResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [token, user]
+          properties:
+            token:
+              type: string
+              description: Bearer token for Authorization header
+            user:
+              $ref: '#/components/schemas/User'
+
+    CalorieEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        foodName:
+          type: string
+        calorieAmount:
+          type: number
+          format: float
+        protein:
+          type: number
+          format: float
+          nullable: true
+        carbs:
+          type: number
+          format: float
+          nullable: true
+        fat:
+          type: number
+          format: float
+          nullable: true
+        quantity:
+          type: number
+          format: float
+          nullable: true
+        unit:
+          type: string
+          nullable: true
+        mealType:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    CalorieEntryCreate:
+      type: object
+      required: [foodName, calorieAmount]
+      properties:
+        foodName:
+          type: string
+          minLength: 1
+        calorieAmount:
+          type: number
+          format: float
+          minimum: 0
+        protein:
+          type: number
+          format: float
+          nullable: true
+        carbs:
+          type: number
+          format: float
+          nullable: true
+        fat:
+          type: number
+          format: float
+          nullable: true
+        quantity:
+          type: number
+          format: float
+          nullable: true
+        unit:
+          type: string
+          nullable: true
+        mealType:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
