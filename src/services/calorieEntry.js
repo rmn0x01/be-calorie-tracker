@@ -10,6 +10,21 @@ function getTodayRange() {
   return { startOfToday, startOfTomorrow };
 }
 
+function getWeekRange() {
+  const now = new Date();
+  const currentDay = now.getDay();
+  const diff = currentDay === 0 ? 6 : currentDay - 1;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - diff);
+  monday.setHours(0, 0, 0, 0);
+  
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  
+  return { monday, sunday };
+}
+
 function getDateRange(date) {
   const startOfToday = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const startOfTomorrow = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
@@ -41,6 +56,20 @@ const CalorieEntryService = {
         createdAt: {
           [Op.gte]: startOfToday,
           [Op.lt]: startOfTomorrow,
+        },
+      },
+    });
+    return result ?? 0;
+  },
+
+  async getWeeklyCaloriesTotal(userId) {
+    const { monday, sunday } = getWeekRange();
+    const result = await CalorieEntry.sum('calorieAmount', {
+      where: {
+        userId,
+        createdAt: {
+          [Op.gte]: monday,
+          [Op.lte]: sunday,
         },
       },
     });

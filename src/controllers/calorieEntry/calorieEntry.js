@@ -88,6 +88,21 @@ module.exports = class CalorieEntryController {
     }
   }
 
+  static async getAvgCaloriesWeekly(req, res) {
+    try {
+      const total = await CalorieEntryService.getWeeklyCaloriesTotal(req.userId)
+      const avgCaloriesWeekly = Math.round((total / 7) * 100) / 100
+      return res.status(200).json({
+        data: { avg_calories_weekly: avgCaloriesWeekly },
+      })
+    } catch (err) {
+      return res.status(500).json({
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to get average calories weekly',
+      })
+    }
+  }
+
   static async getList(req, res) {
     const { query } = req
     const rows = await CalorieEntryService.list(query, req.userId)
