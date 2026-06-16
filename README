@@ -1,2 +1,30 @@
- $env:OLLAMA_HOST="0.0.0.0:11434"
- ollama serve
+# Local Ollama Setup
+
+1. **Find your Windows IP**
+   - Open Command Prompt or PowerShell
+   - Run `ipconfig`
+   - Look for your IPv4 address (e.g., `192.168.1.197`)
+
+2. **Update `.env`**
+   - Set `LOCAL_MODEL_URL` to that IP with port `11434`:
+     ```
+     LOCAL_MODEL_URL=192.168.1.197:11434
+     ```
+
+3. **Start Ollama on Windows**
+   - Open **PowerShell**
+   - Set the host binding so the backend can reach it:
+     ```powershell
+     $env:OLLAMA_HOST="0.0.0.0:11434"
+     ```
+   - Start the Ollama server:
+     ```powershell
+     ollama serve
+     ```
+
+4. **Verify**
+   - From WSL/Linux, run:
+     ```bash
+     curl http://192.168.1.197:11434/api/tags
+     ```
+   - You should see a JSON response listing available models.
