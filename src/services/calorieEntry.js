@@ -162,8 +162,6 @@ const CalorieEntryService = {
       think: false,
     };
 
-    console.log(aiPayload);
-
     const aiResponse = await chatCompletion(aiPayload);
     return aiResponse.message.content;
   },
