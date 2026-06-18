@@ -6,5 +6,6 @@ router.post('/', CalorieEntryController.create)
 router.get('/', CalorieEntryController.getList)
 router.get('/calories-today', CalorieEntryController.getCaloriesToday)
 router.get('/avg-calories-weekly', CalorieEntryController.getAvgCaloriesWeekly)
+router.get('/analyze-weekly', CalorieEntryController.analyzeWeekly)
 
 module.exports = router

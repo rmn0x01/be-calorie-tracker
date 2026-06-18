@@ -110,4 +110,24 @@ module.exports = class CalorieEntryController {
       data: rows,
     })
   }
+
+  static async analyzeWeekly(req, res, next) {
+    try {
+      const { startDate, endDate } = req.query
+
+      if (!startDate || !endDate) {
+        return res.status(400).json({
+          error: 'INVALID_REQUEST',
+          message: 'startDate and endDate are required',
+        })
+      }
+
+      const result = await CalorieEntryService.analyzeWeekly(req.userId, startDate, endDate)
+      return res.status(200).json({
+        data: result,
+      })
+    } catch (err) {
+      next(err)
+    }
+  }
 }

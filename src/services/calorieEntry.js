@@ -1,7 +1,9 @@
 'use strict';
 
-const { Op } = require('sequelize');
+const { Op, fn, col, literal } = require('sequelize');
 const CalorieEntry = require('../models/calorieEntry');
+const UserService = require('./user');
+const { chatCompletion } = require('../helpers/localAi');
 
 function getTodayRange() {
   const now = new Date();
@@ -86,12 +88,84 @@ const CalorieEntryService = {
         [Op.gte]: startOfToday,
         [Op.lt]: startOfTomorrow,
       }
+    } else if (query.startDate || query.endDate) {
+      whereFilter.createdAt = {}
+      if (query.startDate) {
+        const { startOfToday } = getDateRange(new Date(query.startDate));
+        whereFilter.createdAt[Op.gte] = startOfToday;
+      }
+      if (query.endDate) {
+        const { startOfTomorrow } = getDateRange(new Date(query.endDate));
+        whereFilter.createdAt[Op.lt] = startOfTomorrow;
+      }
     }
     const rows = CalorieEntry.findAll({
       where: whereFilter,
       order: [['createdAt', 'DESC']],
     })
     return rows
+  },
+
+  async analyzeWeekly(userId, startDate, endDate) {
+    const { startOfToday: rangeStart } = getDateRange(new Date(startDate));
+    const { startOfTomorrow: rangeEnd } = getDateRange(new Date(endDate));
+
+    const entries = await CalorieEntry.findAll({
+      attributes: [
+        [fn('DATE', col('created_at')), 'day'],
+        [fn('SUM', col('calorie_amount')), 'totalCalories'],
+        [fn('SUM', col('protein')), 'totalProtein'],
+        [fn('SUM', col('carbs')), 'totalCarbs'],
+        [fn('SUM', col('fat')), 'totalFat'],
+      ],
+      where: {
+        userId,
+        createdAt: {
+          [Op.gte]: rangeStart,
+          [Op.lt]: rangeEnd,
+        },
+      },
+      group: [fn('DATE', col('created_at'))],
+      order: [[fn('DATE', col('created_at')), 'ASC']],
+      raw: true,
+    });
+
+    const user = await UserService.findById(userId);
+    const targetCalories = user?.calorieGoal || 2000;
+
+    const dayLabels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dailyLines = entries.map((entry) => {
+      const date = new Date(entry.day);
+      const dayName = dayLabels[date.getDay()];
+      const protein = entry.totalProtein != null ? `${entry.totalProtein}g protein` : '';
+      const carbs = entry.totalCarbs != null ? `${entry.totalCarbs}g carbs` : '';
+      const fat = entry.totalFat != null ? `${entry.totalFat}g fat` : '';
+      const macros = [protein, carbs, fat].filter(Boolean).join(', ');
+      return macros ? `${dayName}: ${entry.totalCalories} calories (${macros})` : `${dayName}: ${entry.totalCalories}`;
+    }).join('\n');
+
+    const promptContent = `Target calories: ${targetCalories}\n\n${dailyLines}`;
+
+    const aiPayload = {
+      model: 'qwen3:8b',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a nutrition coach. Analyze weekly calorie intake patterns and provide concise feedback.',
+        },
+        {
+          role: 'user',
+          content: promptContent,
+        },
+      ],
+      stream: false,
+      think: false,
+    };
+
+    console.log(aiPayload);
+
+    const aiResponse = await chatCompletion(aiPayload);
+    return aiResponse.message.content;
   },
 }
 
