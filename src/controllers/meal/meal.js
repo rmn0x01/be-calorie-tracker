@@ -1,4 +1,5 @@
 const MealService = require('../../services/meal');
+const USDAFoodService = require('../../services/usda');
 
 function isValidNumber(value) {
   return typeof value === 'number' && Number.isFinite(value);
@@ -9,6 +10,28 @@ function isValidOptionalNumber(value) {
 }
 
 module.exports = class MealController {
+  static async getExternalUSDA(req, res) {
+    try {
+      const query = typeof req.query.query === 'string' ? req.query.query.trim() : '';
+
+      if (!query) {
+        return res.status(400).json({
+          error: 'INVALID_QUERY',
+          message: 'query parameter is required',
+        });
+      }
+
+      const results = await USDAFoodService.searchFoods(query);
+      return res.status(200).json({ data: results });
+    } catch (err) {
+      const statusCode = err.statusCode || 500;
+      return res.status(statusCode).json({
+        error: 'USDA_API_ERROR',
+        message: err.message || 'Failed to fetch food data from USDA',
+      });
+    }
+  }
+
   static async create(req, res) {
     try {
       const body = req.body || {};
