@@ -46,3 +46,46 @@ describe('UserService.findById', () => {
     expect(result).toBeNull()
   })
 })
+
+describe('UserService.updateById', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('returns null when id is missing', async () => {
+    const result = await UserService.updateById(null, { firstName: 'John' })
+    expect(User.update).not.toHaveBeenCalled()
+    expect(result).toBeNull()
+  })
+
+  it('returns null when updates is missing', async () => {
+    const result = await UserService.updateById('user-id-123', null)
+    expect(User.update).not.toHaveBeenCalled()
+    expect(result).toBeNull()
+  })
+
+  it('calls User.update with the provided fields', async () => {
+    User.update.mockResolvedValue([1])
+
+    const updates = {
+      firstName: 'Jane',
+      calorieGoal: 2000,
+      weightKg: 65.5,
+      heightCm: 170,
+      bornDate: '1990-05-15',
+    }
+
+    const result = await UserService.updateById('user-id-123', updates)
+
+    expect(User.update).toHaveBeenCalledWith(updates, { where: { id: 'user-id-123' } })
+    expect(result).toBe(true)
+  })
+
+  it('returns false when no rows are updated', async () => {
+    User.update.mockResolvedValue([0])
+
+    const result = await UserService.updateById('non-existent-id', { firstName: 'Jane' })
+
+    expect(result).toBe(false)
+  })
+})
