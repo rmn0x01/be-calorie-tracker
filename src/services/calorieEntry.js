@@ -189,10 +189,31 @@ const CalorieEntryService = {
 
     const aiPayload = {
       model: 'qwen3:8b',
+      format: {
+        type: 'object',
+        properties: {
+          grade: { type: 'string' },
+          scores: {
+            type: 'object',
+            properties: {
+              consistency: { type: 'string' },
+              intakeCalorieControl: { type: 'string' },
+              exercise: { type: 'string' },
+            },
+          },
+          summary: { type: 'string' },
+          recommendations: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+          nextChallenge: { type: 'string' },
+        },
+        required: ['grade', 'summary', 'recommendations', 'scores', 'nextChallenge'],
+      },
       messages: [
         {
           role: 'system',
-          content: 'You are a nutrition coach and weight loss coach. Analyze weekly calorie intake, exercise, and user profile data. Provide concise, actionable feedback on how the user can adjust their habits to reach their target weight.',
+          content: 'You are a nutrition coach and weight loss coach. Analyze weekly calorie intake, exercise, and user profile data. Provide concise, actionable feedback on how the user can adjust their habits to reach their target weight. For scores, also assign the value ranged from A to E',
         },
         {
           role: 'user',
@@ -203,10 +224,12 @@ const CalorieEntryService = {
       think: false,
     };
 
-    console.log(aiPayload);
-
     const aiResponse = await chatCompletion(aiPayload);
-    return aiResponse.message.content;
+    try {
+      return JSON.parse(aiResponse.message.content);
+    } catch {
+      return aiResponse.message.content;
+    }
   },
 }
 
