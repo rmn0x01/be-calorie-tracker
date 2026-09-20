@@ -12,6 +12,9 @@ User.associate = function (models) {
   User.hasMany(models.CalorieEntry, {
     foreignKey: 'userId',
   });
+  User.hasMany(models.Exercise, {
+    foreignKey: 'userId',
+  });
 }
 
 User.init(
@@ -48,6 +51,26 @@ User.init(
       type: DataTypes.INTEGER,
       allowNull: true,
       field: 'calorie_goal',
+    },
+    weightKg: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: true,
+      field: 'weight_kg',
+    },
+    targetWeightKg: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: true,
+      field: 'target_weight_kg',
+    },
+    heightCm: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: true,
+      field: 'height_cm',
+    },
+    bornDate: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+      field: 'born_date',
     },
   },
   {

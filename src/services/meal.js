@@ -25,6 +25,12 @@ const MealService = {
   async list(query = {}) {
     const whereFilter = {};
 
+    if (query.name) {
+      whereFilter.name = {
+        [Op.iLike]: `%${query.name}%`,
+      };
+    }
+
     if (query.dateFilter) {
       const { startOfDay, startOfNextDay } = getDateRange(new Date(query.dateFilter));
       whereFilter.createdAt = {

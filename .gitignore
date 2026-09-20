@@ -90,6 +90,9 @@ temp/
 *.sln
 *.sw?
 
+# DeepSeek Harness local state
+.dsh/
+
 # OS generated files
 .DS_Store
 .DS_Store?
